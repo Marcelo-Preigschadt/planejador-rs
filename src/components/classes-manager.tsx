@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { GraduationCap, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { GraduationCap, Pencil, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { SchoolClass } from "@/lib/types";
 
@@ -15,6 +15,22 @@ type ClassesManagerProps = {
   schools: SchoolOption[];
 };
 
+type FormState = {
+  school_id: string;
+  name: string;
+  grade_level: string;
+  shift: string;
+  weekly_periods: string;
+};
+
+const initialForm: FormState = {
+  school_id: "",
+  name: "",
+  grade_level: "",
+  shift: "",
+  weekly_periods: "",
+};
+
 export function ClassesManager({
   initialClasses,
   schools,
@@ -22,13 +38,32 @@ export function ClassesManager({
   const supabase = createClient();
 
   const [classes, setClasses] = useState<SchoolClass[]>(initialClasses);
-  const [schoolId, setSchoolId] = useState("");
-  const [name, setName] = useState("");
-  const [gradeLevel, setGradeLevel] = useState("");
-  const [shift, setShift] = useState("");
-  const [weeklyPeriods, setWeeklyPeriods] = useState("");
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "idle">("idle");
+
+  const isEditing = useMemo(() => editingId !== null, [editingId]);
+
+  function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function resetForm() {
+    setForm(initialForm);
+    setEditingId(null);
+  }
+
+  function showSuccess(text: string) {
+    setMessage(text);
+    setMessageType("success");
+  }
+
+  function showError(text: string) {
+    setMessage(text);
+    setMessageType("error");
+  }
 
   async function reloadClasses() {
     const { data, error } = await supabase
@@ -37,45 +72,116 @@ export function ClassesManager({
       .order("created_at", { ascending: false });
 
     if (error) {
-      setMessage(`Erro ao recarregar turmas: ${error.message}`);
+      showError(`Erro ao recarregar turmas: ${error.message}`);
       return;
     }
 
     setClasses(data ?? []);
   }
 
-  async function handleCreateClass() {
-    if (!schoolId || !name.trim() || !gradeLevel.trim() || !shift.trim() || !weeklyPeriods) {
-      setMessage("Preencha todos os campos da turma.");
-      return;
+  function validateForm() {
+    if (!form.school_id) {
+      showError("Selecione a escola.");
+      return false;
     }
+
+    if (!form.name.trim()) {
+      showError("Informe o nome da turma.");
+      return false;
+    }
+
+    if (!form.grade_level.trim()) {
+      showError("Informe o ano/série.");
+      return false;
+    }
+
+    if (!form.shift.trim()) {
+      showError("Informe o turno.");
+      return false;
+    }
+
+    if (!form.weekly_periods || Number(form.weekly_periods) <= 0) {
+      showError("Informe os períodos por semana.");
+      return false;
+    }
+
+    return true;
+  }
+
+  async function handleCreateClass() {
+    if (!validateForm()) return;
 
     setLoading(true);
     setMessage("");
 
     const { error } = await supabase.from("classes").insert({
-      school_id: schoolId,
-      name: name.trim(),
-      grade_level: gradeLevel.trim(),
-      shift: shift.trim(),
-      weekly_periods: Number(weeklyPeriods),
+      school_id: form.school_id,
+      name: form.name.trim(),
+      grade_level: form.grade_level.trim(),
+      shift: form.shift.trim(),
+      weekly_periods: Number(form.weekly_periods),
       active: true,
     });
 
     setLoading(false);
 
     if (error) {
-      setMessage(`Erro ao salvar turma: ${error.message}`);
+      showError(`Erro ao salvar turma: ${error.message}`);
       return;
     }
 
-    setSchoolId("");
-    setName("");
-    setGradeLevel("");
-    setShift("");
-    setWeeklyPeriods("");
-    setMessage("Turma cadastrada com sucesso.");
+    resetForm();
+    showSuccess("Turma cadastrada com sucesso.");
     await reloadClasses();
+  }
+
+  async function handleUpdateClass() {
+    if (!editingId) return;
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setMessage("");
+
+    const { error } = await supabase
+      .from("classes")
+      .update({
+        school_id: form.school_id,
+        name: form.name.trim(),
+        grade_level: form.grade_level.trim(),
+        shift: form.shift.trim(),
+        weekly_periods: Number(form.weekly_periods),
+      })
+      .eq("id", editingId);
+
+    setLoading(false);
+
+    if (error) {
+      showError(`Erro ao atualizar turma: ${error.message}`);
+      return;
+    }
+
+    resetForm();
+    showSuccess("Turma atualizada com sucesso.");
+    await reloadClasses();
+  }
+
+  function handleEditClass(schoolClass: SchoolClass) {
+    setEditingId(schoolClass.id);
+    setForm({
+      school_id: schoolClass.school_id,
+      name: schoolClass.name ?? "",
+      grade_level: schoolClass.grade_level ?? "",
+      shift: schoolClass.shift ?? "",
+      weekly_periods: String(schoolClass.weekly_periods ?? ""),
+    });
+    setMessage("");
+    setMessageType("idle");
+  }
+
+  function handleCancelEdit() {
+    resetForm();
+    setMessage("");
+    setMessageType("idle");
   }
 
   async function handleDeleteClass(id: string) {
@@ -85,11 +191,15 @@ export function ClassesManager({
     const { error } = await supabase.from("classes").delete().eq("id", id);
 
     if (error) {
-      setMessage(`Erro ao excluir turma: ${error.message}`);
+      showError(`Erro ao excluir turma: ${error.message}`);
       return;
     }
 
-    setMessage("Turma excluída com sucesso.");
+    if (editingId === id) {
+      resetForm();
+    }
+
+    showSuccess("Turma excluída com sucesso.");
     await reloadClasses();
   }
 
@@ -100,13 +210,27 @@ export function ClassesManager({
   return (
     <div className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Nova turma</h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold text-slate-900">
+            {isEditing ? "Editar turma" : "Nova turma"}
+          </h2>
+
+          {isEditing && (
+            <button
+              onClick={handleCancelEdit}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <X size={16} />
+              Cancelar edição
+            </button>
+          )}
+        </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <select
             className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
-            value={schoolId}
-            onChange={(e) => setSchoolId(e.target.value)}
+            value={form.school_id}
+            onChange={(e) => updateField("school_id", e.target.value)}
           >
             <option value="">Selecione a escola</option>
             {schools.map((school) => (
@@ -119,43 +243,61 @@ export function ClassesManager({
           <input
             className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             placeholder="Nome da turma"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={form.name}
+            onChange={(e) => updateField("name", e.target.value)}
           />
 
           <input
             className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             placeholder="Ano/Série"
-            value={gradeLevel}
-            onChange={(e) => setGradeLevel(e.target.value)}
+            value={form.grade_level}
+            onChange={(e) => updateField("grade_level", e.target.value)}
           />
 
           <input
             className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             placeholder="Turno"
-            value={shift}
-            onChange={(e) => setShift(e.target.value)}
+            value={form.shift}
+            onChange={(e) => updateField("shift", e.target.value)}
           />
 
           <input
             type="number"
             className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             placeholder="Períodos por semana"
-            value={weeklyPeriods}
-            onChange={(e) => setWeeklyPeriods(e.target.value)}
+            value={form.weekly_periods}
+            onChange={(e) => updateField("weekly_periods", e.target.value)}
           />
         </div>
 
-        <div className="mt-4 flex items-center gap-3">
-          <button
-            onClick={handleCreateClass}
-            disabled={loading}
-            className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-          >
-            {loading ? "Salvando..." : "Salvar turma"}
-          </button>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {isEditing ? (
+            <button
+              onClick={handleUpdateClass}
+              disabled={loading}
+              className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              {loading ? "Atualizando..." : "Atualizar turma"}
+            </button>
+          ) : (
+            <button
+              onClick={handleCreateClass}
+              disabled={loading}
+              className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              {loading ? "Salvando..." : "Salvar turma"}
+            </button>
+          )}
 
-          {message && <p className="text-sm text-slate-600">{message}</p>}
+          {message && (
+            <p
+              className={`text-sm ${
+                messageType === "error" ? "text-red-600" : "text-slate-600"
+              }`}
+            >
+              {message}
+            </p>
+          )}
         </div>
       </div>
 
@@ -194,13 +336,23 @@ export function ClassesManager({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleDeleteClass(schoolClass.id)}
-                    className="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
-                    title="Excluir turma"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditClass(schoolClass)}
+                      className="rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-50"
+                      title="Editar turma"
+                    >
+                      <Pencil size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteClass(schoolClass.id)}
+                      className="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
+                      title="Excluir turma"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
