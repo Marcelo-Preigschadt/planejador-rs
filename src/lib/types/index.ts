@@ -1,53 +1,67 @@
+export type AppRole = "admin" | "teacher";
+
+export type Profile = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: AppRole;
+  active: boolean;
+  created_at: string;
+};
+
 export type School = {
   id: string;
   name: string;
-  city: string;
+  city: string | null;
   state: string;
+  active: boolean;
+  created_at: string;
 };
 
 export type SchoolClass = {
   id: string;
-  schoolId: string;
+  school_id: string;
   name: string;
-  gradeLevel: string;
+  grade_level: string;
   shift: string;
-  weeklyPeriods: number;
+  weekly_periods: number;
+  active: boolean;
+  created_at: string;
 };
 
-export type CurriculumComponent = {
+export type Component = {
   id: string;
   name: string;
   stage: string;
+  active: boolean;
+  created_at: string;
 };
 
-export type CurriculumSkill = {
+export type Skill = {
   id: string;
   code: string;
-  descriptionLiteral: string;
-  componentId: string;
-  gradeLevel: string;
+  description_literal: string;
+  component_id: string;
+  grade_level: string;
   term: string;
+  stage: string | null;
+  modality: string | null;
+  active: boolean;
+  created_at: string;
 };
 
-export type Template = {
-  id: string;
-  name: string;
-  documentKind: "annual" | "term" | "weekly" | "lesson";
-  fileName: string;
-  fileDataBase64: string;
-  mappingSchema: unknown;
-  createdAt: string;
-};
+export type PlanStatus = "draft" | "ready" | "approved";
 
 export type Plan = {
   id: string;
-  schoolId: string;
-  classId: string;
-  componentId: string;
-  teacherName: string;
+  school_id: string;
+  class_id: string;
+  component_id: string;
+  teacher_user_id: string;
   title: string;
-  planKind: "annual" | "term" | "weekly" | "lesson";
-  canonicalJson: unknown;
-  createdAt: string;
-  updatedAt: string;
+  term: string;
+  status: PlanStatus;
+  canonical_json: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 };
