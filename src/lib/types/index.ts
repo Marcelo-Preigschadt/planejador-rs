@@ -48,11 +48,13 @@ export type Skill = {
   modality: string | null;
   active: boolean;
   created_at: string;
+  support_text?: string | null;
+  source_document_id?: string | null;
+  source_version?: string | null;
 };
 
 export type SkillListItem = Skill & {
   component_name?: string;
-  support_text?: string;
 };
 
 export type PlanStatus = "draft" | "ready" | "approved";
@@ -83,6 +85,25 @@ export type DocumentVisibility =
   | "school"
   | "private"
   | "plan_context";
+
+export type CurriculumParsedSkill = {
+  code: string;
+  description_literal: string;
+  support_text: string;
+};
+
+export type CurriculumParsedMetadata = {
+  component_id: string;
+  grade_level: string;
+  term: string;
+  stage: string;
+  source_version: string;
+};
+
+export type CurriculumParsedJson = {
+  metadata?: CurriculumParsedMetadata;
+  skills?: CurriculumParsedSkill[];
+};
 
 export type DocumentRecord = {
   id: string;
