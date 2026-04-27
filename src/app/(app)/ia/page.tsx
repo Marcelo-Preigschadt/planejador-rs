@@ -1,6 +1,9 @@
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/ui/page-header";
+import { requireAuth } from "@/lib/permissions/check-role";
 
-export default function IAPage() {
+export default async function IAPage() {
+  await requireAuth();
+
   return (
     <div>
       <PageHeader
@@ -10,7 +13,8 @@ export default function IAPage() {
 
       <div className="rounded-2xl bg-white p-6 shadow-sm">
         <p className="text-sm text-slate-600">
-          Aqui entrarão as rotinas de geração dos planejamentos e feedback dos professores.
+          Próximo bloco: seleção de documentos oficiais, privados e contextuais
+          para geração assistida.
         </p>
       </div>
     </div>

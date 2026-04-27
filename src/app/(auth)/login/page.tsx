@@ -46,8 +46,8 @@ export default function LoginPage() {
           </h1>
 
           <p className="mt-4 max-w-md text-slate-300">
-            Plataforma para gestão pedagógica, planejamento, templates institucionais
-            e assistência por IA com controle de acesso por perfil.
+            Plataforma para gestão pedagógica, importação documental,
+            templates institucionais e assistência por IA.
           </p>
         </section>
 

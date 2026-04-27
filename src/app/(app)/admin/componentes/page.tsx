@@ -1,19 +1,19 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { requireRole } from "@/lib/permissions/check-role";
 
-export default async function AdminUsuariosPage() {
+export default async function AdminComponentesPage() {
   await requireRole("admin");
 
   return (
     <div>
       <PageHeader
-        title="Usuários"
-        description="Gestão de usuários, papéis e vínculos."
+        title="Componentes"
+        description="Cadastro dos componentes curriculares."
       />
 
       <div className="rounded-2xl bg-white p-6 shadow-sm">
         <p className="text-sm text-slate-600">
-          Próximo bloco: CRUD real de usuários e vínculo com escola.
+          Próximo bloco: CRUD real de componentes.
         </p>
       </div>
     </div>

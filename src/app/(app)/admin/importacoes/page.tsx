@@ -1,17 +1,17 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { requireRole } from "@/lib/permissions/check-role";
-import { AdminTemplatesManager } from "@/components/admin/admin-templates-manager";
+import { AdminDocumentsManager } from "@/components/admin/admin-documents-manager";
 import type { DocumentRecord, School } from "@/lib/types";
 
-export default async function AdminTemplatesPage() {
+export default async function AdminImportacoesPage() {
   const { supabase, profile } = await requireRole("admin");
 
-  const [{ data: templates, error: templatesError }, { data: schools, error: schoolsError }] =
+  const [{ data: documents, error: documentsError }, { data: schools, error: schoolsError }] =
     await Promise.all([
       supabase
         .from("documents")
         .select("*")
-        .eq("document_type", "template")
+        .in("visibility", ["official", "school"])
         .order("created_at", { ascending: false }),
       supabase
         .from("schools")
@@ -20,16 +20,16 @@ export default async function AdminTemplatesPage() {
         .order("name"),
     ]);
 
-  if (templatesError || schoolsError) {
+  if (documentsError || schoolsError) {
     return (
       <div>
         <PageHeader
-          title="Templates"
-          description="Modelos institucionais de planejamento."
+          title="Importações"
+          description="Central de ingestão de documentos curriculares e institucionais."
         />
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <p className="text-sm text-red-600">
-            Erro ao carregar templates: {templatesError?.message || schoolsError?.message}
+            Erro ao carregar dados: {documentsError?.message || schoolsError?.message}
           </p>
         </div>
       </div>
@@ -39,11 +39,11 @@ export default async function AdminTemplatesPage() {
   return (
     <div>
       <PageHeader
-        title="Templates"
-        description="Upload e gestão dos modelos institucionais de planejamento."
+        title="Importações"
+        description="Upload e gestão dos documentos oficiais e da escola."
       />
-      <AdminTemplatesManager
-        initialTemplates={(templates ?? []) as DocumentRecord[]}
+      <AdminDocumentsManager
+        initialDocuments={(documents ?? []) as DocumentRecord[]}
         schools={(schools ?? []) as School[]}
         currentUserId={profile.id}
       />

@@ -50,6 +50,11 @@ export type Skill = {
   created_at: string;
 };
 
+export type SkillListItem = Skill & {
+  component_name?: string;
+  support_text?: string;
+};
+
 export type PlanStatus = "draft" | "ready" | "approved";
 
 export type Plan = {
@@ -64,4 +69,40 @@ export type Plan = {
   canonical_json: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+};
+
+export type PlanSkill = {
+  id: string;
+  plan_id: string;
+  skill_id: string;
+  created_at: string;
+};
+
+export type DocumentVisibility =
+  | "official"
+  | "school"
+  | "private"
+  | "plan_context";
+
+export type DocumentRecord = {
+  id: string;
+  title: string;
+  document_type: string;
+  visibility: DocumentVisibility;
+  source_kind: string;
+  school_id: string | null;
+  owner_user_id: string | null;
+  plan_id: string | null;
+  file_name: string;
+  file_path: string;
+  mime_type: string | null;
+  file_size: number | null;
+  storage_bucket: string;
+  status: string;
+  extracted_text: string | null;
+  parsed_json: Record<string, unknown>;
+  usable_by_ai: boolean;
+  approved_by_admin: boolean;
+  notes: string | null;
+  created_at: string;
 };
